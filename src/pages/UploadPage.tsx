@@ -32,6 +32,7 @@ const UploadPage: React.FC<Props> = ({ onUploaded }) => {
     setDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
