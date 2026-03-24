@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Persona, Step } from './types';
 import UploadPage from './pages/UploadPage';
 import SelectPage from './pages/SelectPage';
+import PersonaCardPage from './pages/PersonaCardPage';
 import ChatPage from './pages/ChatPage';
 
 const App: React.FC = () => {
@@ -18,7 +19,15 @@ const App: React.FC = () => {
 
   const handleSelected = (p: Persona) => {
     setPersona(p);
+    setStep('persona');
+  };
+
+  const handleStartChat = () => {
     setStep('chat');
+  };
+
+  const handleBackToSelect = () => {
+    setStep('select');
   };
 
   const handleReset = () => {
@@ -30,6 +39,7 @@ const App: React.FC = () => {
 
   if (step === 'upload') return <UploadPage onUploaded={handleUploaded} />;
   if (step === 'select') return <SelectPage sessionId={sessionId} participants={participants} onSelected={handleSelected} />;
+  if (step === 'persona' && persona) return <PersonaCardPage persona={persona} onStart={handleStartChat} onBack={handleBackToSelect} />;
   if (step === 'chat' && persona) return <ChatPage sessionId={sessionId} persona={persona} onReset={handleReset} />;
 
   return null;
