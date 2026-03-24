@@ -42,21 +42,18 @@ const calcBubbleGap = (text: string): number => {
 
 // AI 응답을 여러 버블로 분리
 const splitIntoBubbles = (text: string): string[] => {
-  // 1. 개행 우선
+  // 1. AI가 직접 분리한 ||| 우선 처리 (가장 정확)
+  if (text.includes('|||')) {
+    return text.split('|||').map(s => s.trim()).filter(Boolean);
+  }
+
+  // 2. 개행 기반 분리
   const byNewline = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
   if (byNewline.length > 1) return byNewline;
 
-  // 2. 감탄사 접두 분리: "ㅋㅋㅋ 진짜로?" → ["ㅋㅋㅋ", "진짜로?"]
+  // 3. 감탄사 접두 분리: "ㅋㅋㅋ 진짜로?" → ["ㅋㅋㅋ", "진짜로?"]
   const emotionPrefix = text.match(/^([ㅋㅎㅠㅜ]{2,}|헐+|대박|진짜\??|어머+)\s+(.+)$/);
   if (emotionPrefix) return [emotionPrefix[1], emotionPrefix[2]];
-
-  // 3. 길이 기반 분리 (30자 이상 + 중간 쉼표/마침표)
-  if (text.length > 30) {
-    const mid = text.search(/[,\.!?]\s/);
-    if (mid > 8 && mid < text.length - 5) {
-      return [text.substring(0, mid + 1).trim(), text.substring(mid + 2).trim()];
-    }
-  }
 
   return [text];
 };
