@@ -4,6 +4,10 @@ export interface Persona {
   avgMessageLength: string;
   commonPhrases: string[];
   endingPatterns: string;
+  endingStyle?: string;
+  typingHabits?: string;
+  burstPattern?: string;
+  topics?: string[];
   memories: string[];
   mbti?: string;
 }

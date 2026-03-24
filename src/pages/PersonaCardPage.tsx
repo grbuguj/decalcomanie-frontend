@@ -44,12 +44,45 @@ const PersonaCardPage: React.FC<Props> = ({ persona, onStart, onBack }) => {
           <div style={styles.tagRow}>
             <span style={styles.tag}>{persona.speechStyle}</span>
             <span style={styles.tag}>{persona.avgMessageLength?.split(' ')[0]}</span>
+            {persona.burstPattern && !persona.burstPattern.includes('1개씩') && (
+              <span style={styles.tag}>연속발송</span>
+            )}
             {persona.endingPatterns && persona.endingPatterns !== '특별한 패턴 없음' &&
               persona.endingPatterns.split(', ').slice(0, 2).map((p, i) => (
                 <span key={i} style={styles.tag}>{p}</span>
               ))}
           </div>
         </div>
+
+        {/* 종결어미 & 타이핑 습관 */}
+        {((persona.endingStyle && persona.endingStyle !== '특정 종결어미 패턴 없음') ||
+          (persona.typingHabits && persona.typingHabits !== '특별한 습관 없음')) && (
+          <div style={styles.section}>
+            <p style={styles.sectionTitle}>⌨️ 타이핑 패턴</p>
+            <div style={styles.tagRow}>
+              {persona.endingStyle && persona.endingStyle !== '특정 종결어미 패턴 없음' &&
+                persona.endingStyle.split(', ').slice(0, 3).map((e, i) => (
+                  <span key={i} style={styles.tag}>{e}</span>
+                ))}
+              {persona.typingHabits && persona.typingHabits !== '특별한 습관 없음' &&
+                persona.typingHabits.split(', ').slice(0, 2).map((h, i) => (
+                  <span key={`h${i}`} style={styles.habitTag}>{h}</span>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* 관심사 주제 */}
+        {persona.topics && persona.topics.length > 0 && (
+          <div style={styles.section}>
+            <p style={styles.sectionTitle}>🎯 자주 얘기하는 것</p>
+            <div style={styles.tagRow}>
+              {persona.topics.map((t, i) => (
+                <span key={i} style={styles.topicTag}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 자주 쓰는 표현 */}
         {topPhrases.length > 0 && (
@@ -190,6 +223,22 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px 10px',
     fontSize: '12px',
     color: '#555',
+  },
+  topicTag: {
+    background: '#E8F4FD',
+    border: '1px solid #90CAF9',
+    borderRadius: '12px',
+    padding: '4px 10px',
+    fontSize: '12px',
+    color: '#1565C0',
+  },
+  habitTag: {
+    background: '#F3E5F5',
+    border: '1px solid #CE93D8',
+    borderRadius: '12px',
+    padding: '4px 10px',
+    fontSize: '12px',
+    color: '#6A1B9A',
   },
   memoryItem: {
     fontSize: '13px',
