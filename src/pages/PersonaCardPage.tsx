@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Persona } from '../types';
 
 interface Props {
   persona: Persona;
-  onStart: () => void;
+  onStart: (nickname: string) => void;
   onBack: () => void;
 }
 
@@ -21,6 +21,7 @@ const MBTI_DESC: Record<string, string> = {
 const PersonaCardPage: React.FC<Props> = ({ persona, onStart, onBack }) => {
   const mbtiDesc = persona.mbti ? MBTI_DESC[persona.mbti] || '' : '';
   const topPhrases = (persona.commonPhrases || []).slice(0, 5);
+  const [nickname, setNickname] = useState('');
 
   return (
     <div style={styles.container}>
@@ -111,8 +112,22 @@ const PersonaCardPage: React.FC<Props> = ({ persona, onStart, onBack }) => {
 
         <div style={styles.divider} />
 
+        {/* 닉네임 입력 */}
+        <div style={styles.nicknameWrap}>
+          <p style={styles.nicknameLabel}>
+            {persona.name}이(가) 나를 뭐라고 부를까요?
+          </p>
+          <input
+            style={styles.nicknameInput}
+            value={nickname}
+            onChange={e => setNickname(e.target.value)}
+            placeholder="닉네임 입력 (선택)"
+            maxLength={10}
+          />
+        </div>
+
         {/* 시작 버튼 */}
-        <button style={styles.startBtn} onClick={onStart}>
+        <button style={styles.startBtn} onClick={() => onStart(nickname.trim())}>
           💬 {persona.name}와(과) 대화 시작
         </button>
         <p style={styles.notice}>채팅방에 들어가면 {persona.name}이(가) 먼저 말을 걸어요</p>
@@ -250,6 +265,25 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     color: '#aaa',
     margin: '4px 0 0',
+  },
+  nicknameWrap: {
+    marginBottom: '14px',
+  },
+  nicknameLabel: {
+    fontSize: '13px',
+    color: '#555',
+    margin: '0 0 8px',
+    fontWeight: '500',
+  },
+  nicknameInput: {
+    width: '100%',
+    border: '1.5px solid #e0e0e0',
+    borderRadius: '10px',
+    padding: '10px 14px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box' as const,
+    color: '#1a1a1a',
   },
   startBtn: {
     width: '100%',

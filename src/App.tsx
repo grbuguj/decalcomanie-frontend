@@ -10,6 +10,7 @@ const App: React.FC = () => {
   const [sessionId, setSessionId] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
   const [persona, setPersona] = useState<Persona | null>(null);
+  const [nickname, setNickname] = useState('');
 
   const handleUploaded = (sid: string, parts: string[]) => {
     setSessionId(sid);
@@ -22,7 +23,8 @@ const App: React.FC = () => {
     setStep('persona');
   };
 
-  const handleStartChat = () => {
+  const handleStartChat = (nick: string) => {
+    setNickname(nick);
     setStep('chat');
   };
 
@@ -40,7 +42,7 @@ const App: React.FC = () => {
   if (step === 'upload') return <UploadPage onUploaded={handleUploaded} />;
   if (step === 'select') return <SelectPage sessionId={sessionId} participants={participants} onSelected={handleSelected} />;
   if (step === 'persona' && persona) return <PersonaCardPage persona={persona} onStart={handleStartChat} onBack={handleBackToSelect} />;
-  if (step === 'chat' && persona) return <ChatPage sessionId={sessionId} persona={persona} onReset={handleReset} />;
+  if (step === 'chat' && persona) return <ChatPage sessionId={sessionId} persona={persona} nickname={nickname} onReset={handleReset} />;
 
   return null;
 };

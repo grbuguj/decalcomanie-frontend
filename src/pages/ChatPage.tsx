@@ -5,12 +5,12 @@ import { ChatMessage, Persona } from '../types';
 interface Props {
   sessionId: string;
   persona: Persona;
+  nickname: string;
   onReset: () => void;
 }
 
 interface DisplayMessage extends ChatMessage {
   timestamp: string;
-  isRead?: boolean; // user 메시지만 사용
 }
 
 /* ── 유틸 ──────────────────────────────────────────── */
@@ -65,10 +65,11 @@ const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 /* ── 컴포넌트 ──────────────────────────────────────── */
 
-const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
+const ChatPage: React.FC<Props> = ({ sessionId, persona, nickname, onReset }) => {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);      // 타이핑 점 애니메이션
+  const [isAiSpeaking, setIsAiSpeaking] = useState(true); // 전송 잠금 (버블 사이 포함)
   const [showMemory, setShowMemory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -87,16 +88,20 @@ const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
   useEffect(() => {
     let cancelled = false;
     const doGreet = async () => {
+      setIsAiSpeaking(true);
       setIsTyping(true);
       const delay = calcDelay('안녕', persona.mbti);
       await sleep(delay);
       if (cancelled) return;
       try {
-        const data = await greetUser(sessionId);
+        const data = await greetUser(sessionId, nickname);
         if (cancelled) return;
         const bubbles = splitIntoBubbles(data.message);
         for (let i = 0; i < bubbles.length; i++) {
-          if (i > 0) await sleep(calcBubbleGap(bubbles[i]));
+          if (i > 0) {
+            setIsTyping(true);
+            await sleep(calcBubbleGap(bubbles[i]));
+          }
           if (cancelled) return;
           setIsTyping(false);
           setMessages(prev => [...prev, {
@@ -104,10 +109,11 @@ const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
             content: bubbles[i],
             timestamp: getTimeString(),
           }]);
-          if (i < bubbles.length - 1) setIsTyping(true);
         }
       } catch {
         if (!cancelled) setIsTyping(false);
+      } finally {
+        if (!cancelled) setIsAiSpeaking(false);
       }
     };
     doGreet();
@@ -116,33 +122,28 @@ const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
   }, []);
 
   const handleSend = useCallback(async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || isAiSpeaking) return;
     const userMsg = input.trim();
     setInput('');
+    setIsAiSpeaking(true);
 
-    // 1. 유저 메시지 추가 (읽음 = false)
-    const userMsgObj: DisplayMessage = { role: 'user', content: userMsg, timestamp: getTimeString(), isRead: false };
-    setMessages(prev => [...prev, userMsgObj]);
+    // 1. 유저 메시지 추가
+    setMessages(prev => [...prev, { role: 'user', content: userMsg, timestamp: getTimeString() }]);
 
-    // 2. 읽음 표시: 짧은 딜레이 후 true
-    const readDelay = 400 + Math.random() * 600;
-    await sleep(readDelay);
-    setMessages(prev => prev.map((m, i) => i === prev.length - 1 ? { ...m, isRead: true } : m));
-
-    // 3. 타이핑 인디케이터
+    // 2. 타이핑 인디케이터 + 딜레이
     setIsTyping(true);
 
     try {
-      const data = await sendMessage(sessionId, userMsg);
+      const data = await sendMessage(sessionId, userMsg, nickname);
       const bubbles = splitIntoBubbles(data.message);
 
-      // 4. 첫 버블 전 메인 딜레이
       const mainDelay = calcDelay(data.message, persona.mbti);
       await sleep(mainDelay);
 
-      // 5. 버블 순차 표시
+      // 3. 버블 순차 표시
       for (let i = 0; i < bubbles.length; i++) {
         if (i > 0) {
+          setIsTyping(true);
           await sleep(calcBubbleGap(bubbles[i]));
         }
         setIsTyping(false);
@@ -151,7 +152,6 @@ const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
           content: bubbles[i],
           timestamp: getTimeString(),
         }]);
-        if (i < bubbles.length - 1) setIsTyping(true);
       }
     } catch (e: any) {
       setIsTyping(false);
@@ -160,10 +160,13 @@ const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
         content: `[오류] ${e?.message || '응답 실패'}`,
         timestamp: getTimeString(),
       }]);
+    } finally {
+      setIsAiSpeaking(false);
     }
 
     inputRef.current?.focus();
-  }, [input, isTyping, sessionId, persona.mbti]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, isAiSpeaking, sessionId, persona.mbti, nickname]);
 
   const handleReset = async () => {
     await deleteSession(sessionId);
@@ -211,12 +214,9 @@ const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
               <div style={styles.assistantAvatar}>{persona.name.charAt(0)}</div>
             )}
 
-            {/* 유저 메시지: 읽음 + 시간 왼쪽에 */}
+            {/* 유저 메시지: 시간만 왼쪽에 */}
             {msg.role === 'user' && (
-              <div style={styles.metaLeft}>
-                {msg.isRead && <span style={styles.readLabel}>읽음</span>}
-                <span style={styles.timestamp}>{msg.timestamp}</span>
-              </div>
+              <span style={styles.timestamp}>{msg.timestamp}</span>
             )}
 
             <div style={msg.role === 'user' ? styles.userBubble : styles.assistantBubble}>
@@ -254,12 +254,12 @@ const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="메시지 입력"
-          disabled={isTyping}
+          disabled={isAiSpeaking}
         />
         <button
-          style={{ ...styles.sendBtn, ...((!input.trim() || isTyping) ? styles.sendBtnDisabled : {}) }}
+          style={{ ...styles.sendBtn, ...((!input.trim() || isAiSpeaking) ? styles.sendBtnDisabled : {}) }}
           onClick={handleSend}
-          disabled={!input.trim() || isTyping}
+          disabled={!input.trim() || isAiSpeaking}
         >
           전송
         </button>
@@ -340,11 +340,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: '6px', height: '6px', borderRadius: '50%', background: '#aaa',
     display: 'inline-block', animation: 'bounce 1.2s infinite',
   },
-  metaLeft: {
-    display: 'flex', flexDirection: 'column' as const,
-    alignItems: 'flex-end', gap: '2px',
-  },
-  readLabel: { fontSize: '10px', color: '#FEE500', fontWeight: 'bold' },
   timestamp: { fontSize: '10px', color: '#555', whiteSpace: 'nowrap' as const, marginBottom: '2px' },
   inputArea: {
     background: '#fff', padding: '10px 12px', display: 'flex',
