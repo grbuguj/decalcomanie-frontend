@@ -8,8 +8,21 @@ interface Props {
   onReset: () => void;
 }
 
+interface DisplayMessage extends ChatMessage {
+  timestamp: string;
+}
+
+const getTimeString = () => {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const ampm = h < 12 ? '오전' : '오후';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${ampm} ${hour}:${String(m).padStart(2, '0')}`;
+};
+
 const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
@@ -30,13 +43,13 @@ const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
     if (!input.trim() || loading) return;
     const userMsg = input.trim();
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMsg }]);
+    setMessages((prev) => [...prev, { role: 'user', content: userMsg, timestamp: getTimeString() }]);
     setLoading(true);
     try {
       const data = await sendMessage(sessionId, userMsg);
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
-    } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: '...' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.message, timestamp: getTimeString() }]);
+    } catch (e: any) {
+      setMessages((prev) => [...prev, { role: 'assistant', content: `[오류] ${e?.message || '응답 실패'}`, timestamp: getTimeString() }]);
     } finally {
       setLoading(false);
     }
@@ -79,13 +92,19 @@ const ChatPage: React.FC<Props> = ({ sessionId, persona, onReset }) => {
         <div style={styles.dateLabel}>데칼코마니 AI</div>
 
         {messages.map((msg, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: '6px' }}>
+          <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: '6px', alignItems: 'flex-end', gap: '4px' }}>
             {msg.role === 'assistant' && (
               <div style={styles.assistantAvatar}>{persona.name.charAt(0)}</div>
+            )}
+            {msg.role === 'user' && (
+              <span style={styles.timestamp}>{msg.timestamp}</span>
             )}
             <div style={msg.role === 'user' ? styles.userBubble : styles.assistantBubble}>
               {msg.content}
             </div>
+            {msg.role === 'assistant' && (
+              <span style={styles.timestamp}>{msg.timestamp}</span>
+            )}
           </div>
         ))}
 
@@ -301,6 +320,12 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#f0f0f0',
     color: '#aaa',
     cursor: 'not-allowed',
+  },
+  timestamp: {
+    fontSize: '10px',
+    color: '#666',
+    whiteSpace: 'nowrap' as const,
+    marginBottom: '2px',
   },
 };
 
