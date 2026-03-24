@@ -5,6 +5,7 @@ export interface Persona {
   commonPhrases: string[];
   endingPatterns: string;
   memories: string[];
+  mbti?: string;
 }
 
 export interface ChatMessage {
@@ -12,4 +13,4 @@ export interface ChatMessage {
   content: string;
 }
 
-export type Step = 'upload' | 'select' | 'chat';
+export type Step = 'upload' | 'select' | 'persona' | 'chat';

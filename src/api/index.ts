@@ -32,6 +32,16 @@ export const sendMessage = async (sessionId: string, message: string) => {
   return res.json();
 };
 
+export const greetUser = async (sessionId: string) => {
+  const res = await fetch(`${BASE_URL}/api/greet`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId }),
+  });
+  if (!res.ok) return { message: '...' };
+  return res.json();
+};
+
 export const deleteSession = async (sessionId: string) => {
   await fetch(`${BASE_URL}/api/session/${sessionId}`, { method: 'DELETE' });
 };
